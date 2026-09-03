@@ -113,9 +113,10 @@ export default function AboutPage() {
 
             <div className="relative">
               <img
-                src="https://images.pexels.com/photos/17294719/pexels-photo-17294719.jpeg?auto=compress&cs=tinysrgb&w=900"
-                alt="Premium food"
-                className="rounded-2xl shadow-xl"
+                src="/images/categories/image.png"
+                alt="Premium Oooh-Lala Kitchen food"
+                loading="lazy"
+                className="rounded-2xl shadow-xl object-cover w-full"
               />
               <div className="absolute -bottom-6 -left-6 hidden rounded-2xl bg-white p-6 shadow-xl sm:block">
                 <div className="flex items-center gap-3">
