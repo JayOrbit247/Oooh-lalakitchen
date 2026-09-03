@@ -10,14 +10,16 @@ export default function CategoryCard({ category }: CategoryCardProps) {
   return (
     <Link
       to={`/menu?category=${category.slug}`}
-      className="card card-hover group relative flex flex-col overflow-hidden"
+      className="card card-hover group relative flex h-full flex-col overflow-hidden"
     >
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-48 overflow-hidden sm:h-52">
         <img
           src={category.image_url}
           alt={category.name}
           loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          decoding="async"
+          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-charcoal-900/80 via-charcoal-900/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-4">
