@@ -18,33 +18,12 @@ import {
   useTestimonials,
   usePromotions,
 } from '@/hooks/useData';
+import FoodCard from '@/components/FoodCard';
 import CategoryCard from '@/components/CategoryCard';
 import QuickViewModal from '@/components/QuickViewModal';
 import StarRating from '@/components/StarRating';
 import type { MenuItem } from '@/types';
 import { DELIVERY_AREAS } from '@/types';
-
-interface MenuGroup {
-  name: string;
-  prices: number[];
-}
-
-function groupMenuItems(items: { name: string; price: number }[]): MenuGroup[] {
-  const map = new Map<string, number[]>();
-  for (const item of items) {
-    const existing = map.get(item.name);
-    if (existing) {
-      existing.push(item.price);
-    } else {
-      map.set(item.name, [item.price]);
-    }
-  }
-  return Array.from(map.entries()).map(([name, prices]) => ({ name, prices }));
-}
-
-function formatNaira(amount: number): string {
-  return `\u20a6${amount.toLocaleString()}`;
-}
 
 const whyChooseUs = [
   {
@@ -81,15 +60,13 @@ const whyChooseUs = [
 
 export default function HomePage() {
   const { categories } = useCategories();
-  const { items: menuItems } = useMenuItems({});
+  const { items: popularItems } = useMenuItems({ popularOnly: true });
   const { testimonials } = useTestimonials();
   const { promotions } = usePromotions();
   const [quickViewItem, setQuickViewItem] = useState<MenuItem | null>(null);
   const [selectedArea, setSelectedArea] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [areaConfirmed, setAreaConfirmed] = useState(false);
-
-  const menuGroups = groupMenuItems(menuItems.slice(0, 6));
 
   const handleConfirmArea = () => {
     if (selectedArea || addressInput) {
@@ -263,37 +240,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Menu Preview */}
+      {/* Featured Meals */}
       <section className="section-padding bg-white">
         <div className="container-padding">
           <div className="mb-10 text-center">
             <span className="text-sm font-semibold uppercase tracking-wide text-primary-600">
-              Our Menu
+              Chef's Selection
             </span>
             <h2 className="mt-1 font-serif text-3xl font-bold text-charcoal-900 sm:text-4xl">
-              Oooh-Lala Kitchen Menu
+              Featured Meals
             </h2>
             <p className="mt-3 text-charcoal-600">
-              Freshly prepared meals and sides available for order.
+              Our most loved dishes, crafted with premium ingredients and delivered fresh.
             </p>
           </div>
 
-          <div className="mx-auto max-w-2xl">
-            <div className="card overflow-hidden">
-              <ul className="divide-y divide-charcoal-50">
-                {menuGroups.map((group) => (
-                  <li
-                    key={group.name}
-                    className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-charcoal-50/50"
-                  >
-                    <span className="font-medium text-charcoal-800">{group.name}</span>
-                    <span className="font-serif text-base font-semibold text-primary-600">
-                      {group.prices.map(formatNaira).join(' \u00b7 ')}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {popularItems.slice(0, 8).map((item) => (
+              <FoodCard key={item.id} item={item} onQuickView={setQuickViewItem} />
+            ))}
           </div>
 
           <div className="mt-10 text-center">
