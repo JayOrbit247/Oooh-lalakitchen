@@ -6,7 +6,6 @@ import {
   Plus,
   Minus,
   Check,
-  X,
   Trash2,
   ArrowRight,
 } from 'lucide-react';
@@ -20,6 +19,8 @@ interface MenuPriceOption {
 interface MenuItemDef {
   name: string;
   options: MenuPriceOption[];
+  description?: string;
+  image?: string;
 }
 
 interface MenuSection {
@@ -28,6 +29,29 @@ interface MenuSection {
 }
 
 const menuSections: MenuSection[] = [
+  {
+    title: 'Rice & Pasta',
+    items: [
+      {
+        name: 'Jollof Rice',
+        description: 'Classic Nigerian party jollof rice, smoky and rich. Priced per portion.',
+        image: '/images/categories/image.png',
+        options: [{ label: 'Per Portion', price: 300 }],
+      },
+      {
+        name: 'Fried Rice',
+        description: 'Freshly cooked Nigerian-style fried rice. Priced per portion.',
+        image: '/images/categories/image copy 2.png',
+        options: [{ label: 'Per Portion', price: 300 }],
+      },
+      {
+        name: 'Spaghetti',
+        description: 'Delicious Nigerian-style spaghetti. Priced per portion.',
+        image: '/images/categories/image copy 4.png',
+        options: [{ label: 'Per Portion', price: 300 }],
+      },
+    ],
+  },
   {
     title: 'Main Dishes',
     items: [
@@ -146,6 +170,33 @@ export default function MenuPage() {
     showToast(`${qty}x ${itemName} added to cart`);
   };
 
+  const orderNow = (itemName: string) => {
+    const option = getOption(itemName);
+    const key = getCartKey(itemName, option.label);
+    const qty = getQty(key);
+    if (qty === 0) {
+      showToast('Please select a quantity first');
+      return;
+    }
+    const existing = cart.find((c) => c.id === key);
+    if (existing) {
+      setCart((prev) =>
+        prev.map((c) => (c.id === key ? { ...c, quantity: c.quantity + qty } : c))
+      );
+    } else {
+      setCart((prev) => [
+        ...prev,
+        { id: key, name: itemName, optionLabel: option.label, price: option.price, quantity: qty },
+      ]);
+    }
+    setQuantities((p) => ({ ...p, [key]: 0 }));
+    setShowCheckout(true);
+    setOrderSubmitted(false);
+    setTimeout(() => {
+      checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   const updateCartQty = (id: string, delta: number) => {
     setCart((prev) =>
       prev
@@ -170,22 +221,13 @@ export default function MenuPage() {
     }, 100);
   };
 
-  const buildOrderSummary = () => {
-    const lines = cart.map(
-      (c) => `${c.quantity}x ${c.name}${c.optionLabel !== 'Regular' ? ` (${c.optionLabel})` : ''} - ${formatNaira(c.price * c.quantity)}`
-    );
-    lines.push('');
-    lines.push(`Total: ${formatNaira(totalAmount)}`);
-    return lines.join('\n');
-  };
-
   const buildWhatsAppMessage = () => {
     const parts = [
       'Hello Oooh-Lala Kitchen, I would like to place the following order:',
       '',
       ...cart.map(
         (c) =>
-          `${c.quantity}x ${c.name}${c.optionLabel !== 'Regular' ? ` (${c.optionLabel})` : ''} - ${formatNaira(c.price * c.quantity)}`
+          `${c.quantity}x ${c.name}${c.optionLabel !== 'Regular' && c.optionLabel !== 'Per Portion' ? ` (${c.optionLabel})` : c.optionLabel === 'Per Portion' ? ` - ${c.quantity} portion${c.quantity > 1 ? 's' : ''}` : ''} - ${formatNaira(c.price * c.quantity)}`
       ),
       '',
       `Total: ${formatNaira(totalAmount)}`,
@@ -257,84 +299,133 @@ export default function MenuPage() {
                 <div className="h-px flex-1 bg-gradient-to-r from-primary-300 to-transparent" />
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${section.items.some((i) => i.image) ? 'lg:grid-cols-3' : ''}`}>
                 {section.items.map((item) => {
                   const selectedIdx = selectedOptions[item.name] ?? 0;
                   const option = item.options[selectedIdx];
                   const cartKey = getCartKey(item.name, option.label);
                   const qty = getQty(cartKey);
+                  const hasImage = !!item.image;
 
                   return (
                     <div
                       key={item.name}
-                      className="card card-hover flex flex-col gap-3 p-5"
+                      className="card card-hover flex flex-col overflow-hidden"
                     >
-                      <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="font-serif text-lg font-semibold text-charcoal-900">
-                          {item.name}
-                        </h3>
-                        {item.options.length > 1 ? (
-                          <span className="text-xs font-medium uppercase tracking-wide text-charcoal-400">
-                            {item.options.length} sizes
-                          </span>
-                        ) : (
-                          <span className="font-serif text-xl font-bold text-primary-600">
-                            {formatNaira(option.price)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Size selector for multi-option items */}
-                      {item.options.length > 1 && (
-                        <div className="flex flex-wrap gap-2">
-                          {item.options.map((opt, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() =>
-                                setSelectedOptions((p) => ({ ...p, [item.name]: idx }))
-                              }
-                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                                selectedIdx === idx
-                                  ? 'bg-primary-600 text-white shadow-sm'
-                                  : 'bg-charcoal-50 text-charcoal-600 hover:bg-charcoal-100'
-                              }`}
-                            >
-                              {opt.label}
-                              <span className="ml-1.5 opacity-80">{formatNaira(opt.price)}</span>
-                            </button>
-                          ))}
+                      {hasImage && (
+                        <div className="relative h-44 overflow-hidden">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/40 to-transparent" />
                         </div>
                       )}
 
-                      {/* Quantity selector + Add to Cart */}
-                      <div className="mt-1 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => decQty(cartKey)}
-                            disabled={qty === 0}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-charcoal-100 text-charcoal-700 transition-all hover:bg-charcoal-200 active:scale-90 disabled:opacity-30"
-                          >
-                            <Minus size={16} />
-                          </button>
-                          <span className="min-w-[2rem] text-center font-serif text-lg font-semibold text-charcoal-900">
-                            {qty}
-                          </span>
-                          <button
-                            onClick={() => incQty(cartKey)}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-100 text-primary-700 transition-all hover:bg-primary-200 active:scale-90"
-                          >
-                            <Plus size={16} />
-                          </button>
+                      <div className="flex flex-1 flex-col gap-3 p-5">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <h3 className="font-serif text-lg font-semibold text-charcoal-900">
+                            {item.name}
+                          </h3>
+                          {item.options.length > 1 ? (
+                            <span className="text-xs font-medium uppercase tracking-wide text-charcoal-400">
+                              {item.options.length} sizes
+                            </span>
+                          ) : (
+                            <span className="font-serif text-xl font-bold text-primary-600">
+                              {formatNaira(option.price)}
+                              {option.label === 'Per Portion' && (
+                                <span className="ml-1 text-xs font-medium text-charcoal-500">
+                                  /portion
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </div>
 
-                        <button
-                          onClick={() => addToCart(item.name)}
-                          disabled={qty === 0}
-                          className="btn-primary !px-5 !py-2.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Plus size={14} />
-                          Add to Cart
-                        </button>
+                        {item.description && (
+                          <p className="text-sm leading-relaxed text-charcoal-600">
+                            {item.description}
+                          </p>
+                        )}
+
+                        {item.options.length === 1 && option.label === 'Per Portion' && (
+                          <p className="text-sm font-semibold text-primary-600">
+                            {formatNaira(option.price)} Per Portion
+                          </p>
+                        )}
+
+                        {/* Size selector for multi-option items */}
+                        {item.options.length > 1 && (
+                          <div className="flex flex-wrap gap-2">
+                            {item.options.map((opt, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() =>
+                                  setSelectedOptions((p) => ({ ...p, [item.name]: idx }))
+                                }
+                                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                                  selectedIdx === idx
+                                    ? 'bg-primary-600 text-white shadow-sm'
+                                    : 'bg-charcoal-50 text-charcoal-600 hover:bg-charcoal-100'
+                                }`}
+                              >
+                                {opt.label}
+                                <span className="ml-1.5 opacity-80">{formatNaira(opt.price)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Live total for selected quantity */}
+                        {qty > 0 && (
+                          <p className="text-xs font-medium text-charcoal-500">
+                            {qty} portion{qty > 1 ? 's' : ''} = {formatNaira(option.price * qty)}
+                          </p>
+                        )}
+
+                        {/* Quantity selector + Add to Cart */}
+                        <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => decQty(cartKey)}
+                              disabled={qty === 0}
+                              className="flex h-9 w-9 items-center justify-center rounded-lg bg-charcoal-100 text-charcoal-700 transition-all hover:bg-charcoal-200 active:scale-90 disabled:opacity-30"
+                            >
+                              <Minus size={16} />
+                            </button>
+                            <span className="min-w-[2rem] text-center font-serif text-lg font-semibold text-charcoal-900">
+                              {qty}
+                            </span>
+                            <button
+                              onClick={() => incQty(cartKey)}
+                              className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-100 text-primary-700 transition-all hover:bg-primary-200 active:scale-90"
+                            >
+                              <Plus size={16} />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => addToCart(item.name)}
+                              disabled={qty === 0}
+                              className="btn-outline !px-4 !py-2.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <Plus size={14} />
+                              Add to Cart
+                            </button>
+                            {hasImage && (
+                              <button
+                                onClick={() => orderNow(item.name)}
+                                disabled={qty === 0}
+                                className="btn-primary !px-4 !py-2.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Order Now
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -390,12 +481,15 @@ export default function MenuPage() {
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-charcoal-800">
                                   {line.name}
-                                  {line.optionLabel !== 'Regular' && (
+                                  {line.optionLabel !== 'Regular' && line.optionLabel !== 'Per Portion' && (
                                     <span className="text-charcoal-400"> ({line.optionLabel})</span>
+                                  )}
+                                  {line.optionLabel === 'Per Portion' && (
+                                    <span className="text-charcoal-400"> · {line.quantity} portion{line.quantity > 1 ? 's' : ''}</span>
                                   )}
                                 </p>
                                 <p className="text-xs text-charcoal-500">
-                                  {formatNaira(line.price)} each
+                                  {formatNaira(line.price)}{line.optionLabel === 'Per Portion' ? ' per portion' : ' each'}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
